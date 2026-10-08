@@ -1,145 +1,215 @@
+```html
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#071c36">
-  <title>Kamera RPG — Scan POS</title>
-  <style>
-    *{box-sizing:border-box}
-    body{margin:0;background:#06182c;color:white;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
-    .wrap{max-width:520px;margin:auto;padding:16px}
-    .card{background:#102b49;border:1px solid rgba(255,255,255,.12);border-radius:22px;padding:18px;box-shadow:0 16px 40px rgba(0,0,0,.3)}
-    h1{font-size:22px}.muted{color:#a7b9ca}
-    video{width:100%;border-radius:18px;background:#000;aspect-ratio:3/4;object-fit:cover}
-    canvas{display:none}
-    button{width:100%;border:0;border-radius:15px;padding:14px;margin-top:10px;font-weight:800;cursor:pointer}
-    .primary{background:#20c7e8;color:#041523}
-    .ghost{background:#27496a;color:white}
-    .ok{background:#34d399;color:#052017}
-    .status{padding:12px;border-radius:12px;background:rgba(255,255,255,.07);margin:12px 0;line-height:1.5}
-    .target{font-weight:900;color:#ffd447}
-  </style>
+<meta charset="UTF-8">
+
+<meta name="viewport"
+      content="width=device-width, initial-scale=1">
+
+<title>TEST KAMERA RPG</title>
+
+<style>
+body{
+  margin:0;
+  padding:20px;
+  background:#06182c;
+  color:white;
+  font-family:Arial,sans-serif;
+  text-align:center;
+}
+
+h1{
+  font-size:24px;
+}
+
+video{
+  width:100%;
+  max-width:500px;
+  height:auto;
+  min-height:300px;
+  background:#000;
+  border-radius:20px;
+  object-fit:cover;
+}
+
+button{
+  width:100%;
+  max-width:500px;
+  padding:16px;
+  margin-top:15px;
+  border:0;
+  border-radius:15px;
+  background:#20c7e8;
+  color:#06182c;
+  font-size:18px;
+  font-weight:bold;
+}
+
+#status{
+  max-width:500px;
+  margin:15px auto;
+  padding:15px;
+  background:#173957;
+  border-radius:12px;
+  text-align:left;
+  line-height:1.6;
+}
+
+#error{
+  color:#ff7676;
+  white-space:pre-wrap;
+  word-break:break-word;
+}
+</style>
 </head>
+
 <body>
-<div class="wrap">
-  <div class="card">
-    <h1>📷 Kamera Petualangan</h1>
-    <p class="muted">Arahkan kamera ke QR marker POS yang sedang dicari.</p>
-    <div class="status">Target: <span id="target" class="target">...</span></div>
 
-    <video id="video" autoplay muted playsinline></video>
-    <canvas id="canvas"></canvas>
+<h1>📷 TEST KAMERA RPG</h1>
 
-    <div id="status" class="status">Tekan “Aktifkan Kamera”.</div>
-    <button class="primary" onclick="startCamera()">📷 Aktifkan Kamera</button>
-    <button class="ghost" onclick="stopCamera()">⏹ Hentikan Kamera</button>
-    <button class="ok hidden" id="returnBtn" onclick="returnToApp()">✅ Kembali ke RPG</button>
-  </div>
+<video
+  id="video"
+  autoplay
+  muted
+  playsinline
+  webkit-playsinline>
+</video>
+
+<div id="status">
+  Tekan tombol untuk mengaktifkan kamera.
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<div id="error"></div>
+
+<button onclick="openCamera()">
+  📷 AKTIFKAN KAMERA
+</button>
+
 <script>
-  const params=new URLSearchParams(location.search);
-  const expectedPos=params.get('pos')||'POS1';
-  const expectedMarker='MINYAKBUMI-'+expectedPos;
-  const returnUrl=params.get('return')||'';
-  let stream=null, scanning=false, success=false;
 
-  $('target').textContent=expectedPos;
+async function openCamera(){
 
-  function $(id){return document.getElementById(id)}
-  function setStatus(t,cls='status'){
-    $('status').className=cls==='ok'?'status ok':'status';
-    $('status').textContent=t;
+  const status =
+    document.getElementById('status');
+
+  const error =
+    document.getElementById('error');
+
+  const video =
+    document.getElementById('video');
+
+  error.textContent = '';
+
+  status.innerHTML =
+    '⏳ Memeriksa kemampuan kamera...';
+
+
+  console.log(
+    'isSecureContext:',
+    window.isSecureContext
+  );
+
+  console.log(
+    'mediaDevices:',
+    navigator.mediaDevices
+  );
+
+
+  if(!window.isSecureContext){
+
+    status.innerHTML =
+      '❌ HALAMAN TIDAK SECURE (HTTPS)';
+
+    return;
   }
 
-  async function startCamera(){
-    if(!window.isSecureContext){
-      setStatus('❌ Halaman kamera harus dibuka melalui HTTPS. Publikasikan camera.html di GitHub Pages, Netlify, atau hosting HTTPS lain.');
-      return;
-    }
 
-    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
-      setStatus('❌ Browser ini tidak menyediakan akses kamera. Gunakan Chrome/Edge/Safari terbaru.');
-      return;
-    }
+  if(!navigator.mediaDevices){
 
-    try{
-      stopCamera();
+    status.innerHTML =
+      '❌ navigator.mediaDevices tidak tersedia';
 
-      stream=await navigator.mediaDevices.getUserMedia({
-        video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}},
+    return;
+  }
+
+
+  if(!navigator.mediaDevices.getUserMedia){
+
+    status.innerHTML =
+      '❌ getUserMedia tidak tersedia';
+
+    return;
+  }
+
+
+  try{
+
+    status.innerHTML =
+      '📷 Meminta izin kamera...';
+
+
+    const stream =
+      await navigator.mediaDevices.getUserMedia({
+
+        video:true,
+
         audio:false
+
       });
 
-      $('video').srcObject=stream;
-      scanning=true;
-      setStatus('📷 Kamera aktif. Arahkan ke QR '+expectedPos+'...');
-      requestAnimationFrame(scan);
-    }catch(err){
-      let msg='❌ Kamera gagal dibuka.';
-      if(err.name==='NotAllowedError') msg+=' Izin kamera ditolak. Izinkan Camera pada pengaturan browser.';
-      else if(err.name==='NotFoundError') msg+=' Kamera tidak ditemukan.';
-      else if(err.name==='NotReadableError') msg+=' Kamera sedang dipakai aplikasi lain.';
-      else if(err.name==='SecurityError') msg+=' Browser memblokir akses kamera karena alasan keamanan.';
-      else msg+=' '+err.name+': '+err.message;
-      setStatus(msg);
-    }
+
+    console.log(
+      'STREAM:',
+      stream
+    );
+
+
+    video.srcObject =
+      stream;
+
+
+    await video.play();
+
+
+    status.innerHTML =
+      '✅ KAMERA BERHASIL AKTIF!<br><br>' +
+
+      'Resolusi: ' +
+      video.videoWidth +
+      ' × ' +
+      video.videoHeight;
+
+
   }
 
-  function scan(){
-    if(!scanning) return;
-    const video=$('video'), canvas=$('canvas');
-    if(video.readyState>=2 && video.videoWidth){
-      canvas.width=video.videoWidth;
-      canvas.height=video.videoHeight;
-      const ctx=canvas.getContext('2d',{willReadFrequently:true});
-      ctx.drawImage(video,0,0,canvas.width,canvas.height);
-      const image=ctx.getImageData(0,0,canvas.width,canvas.height);
-      const code=jsQR(image.data,image.width,image.height,{inversionAttempts:'attemptBoth'});
+  catch(err){
 
-      if(code && code.data){
-        if(code.data===expectedMarker){
-          success=true;
-          scanning=false;
-          stopCamera();
-          setStatus('✅ BENAR! '+expectedPos+' berhasil diverifikasi.','ok');
-          $('returnBtn').classList.remove('hidden');
+    console.error(
+      'CAMERA ERROR:',
+      err
+    );
 
-          if(window.opener && !window.opener.closed){
-            window.opener.postMessage({
-              type:'RPG_POS_VERIFIED',
-              pos:expectedPos,
-              marker:code.data
-            },'*');
-          }
-        }else{
-          setStatus('⚠️ QR terbaca: '+code.data+'. Itu bukan '+expectedPos+'. Cari QR yang sesuai.');
-        }
-      }
-    }
-    requestAnimationFrame(scan);
+
+    status.innerHTML =
+      '❌ KAMERA GAGAL DIBUKA';
+
+
+    error.textContent =
+      'Nama error: ' +
+      err.name +
+      '\n\n' +
+
+      'Pesan: ' +
+      err.message;
+
+
   }
 
-  function stopCamera(){
-    scanning=false;
-    if(stream){
-      stream.getTracks().forEach(t=>t.stop());
-      stream=null;
-    }
-  }
+}
 
-  function returnToApp(){
-    if(window.opener && !window.opener.closed){
-      window.opener.focus();
-      window.close();
-      return;
-    }
-    if(returnUrl) location.href=returnUrl;
-  }
-
-  window.addEventListener('beforeunload',stopCamera);
 </script>
+
 </body>
 </html>
+```
